@@ -1,0 +1,16 @@
+endpoints:
+  azureOpenAI:
+    (...)
+    groups:
+    - group: "openai"
+      apiKey: "openai-key"
+      instanceName: "openai-instance-name"
+      forcePrompt: false
+      assistants: true
+      models:
+        gpt-4-turbo:
+          deploymentName: gpt-4-turbo
+          version: "2024-02-15-preview"
+        gpt-3.5-turbo-16k:
+          deploymentName: gpt-35-turbo-16k
+          version: "2024-02-15-preview"
