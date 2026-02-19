@@ -1,0 +1,78 @@
+# LibreChat Configuration
+# For detailed documentation, visit: https://www.librechat.ai/docs/configuration/librechat_yaml
+
+version: 1.0.0
+
+cache: true
+
+interface:
+  privacyPolicy:
+    externalUrl: 'https://librechat.ai/privacy-policy'
+    openNewTab: true
+  termsOfService:
+    externalUrl: 'https://librechat.ai/tos'
+    openNewTab: true
+
+fileStrategy: "azure"
+
+fileConfig:
+  endpoints:
+    assistants:
+      fileLimit: 5
+      fileSizeLimit: 10
+      totalSizeLimit: 50
+      supportedMimeTypes:
+        - "image/.*"
+        - "application/pdf"
+    openAI:
+      disabled: false
+      fileLimit: 5
+      fileSizeLimit: 10
+      totalSizeLimit: 50
+      supportedMimeTypes:
+        - "image/.*"
+        - "application/pdf"
+    default:
+      totalSizeLimit: 20
+
+registration:
+  socialLogins: []
+  allowedDomains: []
+
+modelSpecs:
+  enforce: false
+  prioritize: true
+
+endpoints:
+  # Configure your AI endpoints here after deployment
+  # Example OpenAI configuration:
+  # openAI:
+  #   titleModel: "gpt-3.5-turbo"
+  #   plugins: true
+  #   availableModels:
+  #     - "gpt-3.5-turbo"
+  #     - "gpt-4"
+  #     - "gpt-4-turbo-preview"
+
+  # Example Azure OpenAI configuration:
+  # azureOpenAI:
+  #   titleModel: "gpt-35-turbo"
+  #   plugins: true
+  #   groups:
+  #     - group: "my-group"
+  #       apiKey: "${AZURE_OPENAI_API_KEY}"
+  #       instanceName: "my-instance"
+  #       deploymentName: "my-deployment"
+  #       version: "2023-12-01-preview"
+  #       models:
+  #         gpt-4: true
+  #         gpt-35-turbo: true
+
+  # Example Anthropic configuration:
+  # anthropic:
+  #   titleModel: "claude-3-sonnet-20240229"
+  #   apiKey: "${ANTHROPIC_API_KEY}"
+  #   availableModels:
+  #     - "claude-3-opus-20240229"
+  #     - "claude-3-sonnet-20240229"
+  #     - "claude-3-haiku-20240307"

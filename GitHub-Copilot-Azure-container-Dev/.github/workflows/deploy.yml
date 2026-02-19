@@ -1,0 +1,134 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+
+env:
+  AZURE_RESOURCE_GROUP: librechat-rg
+  AZURE_LOCATION: eastus
+
+jobs:
+  validate:
+    name: Validate Bicep Templates
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Validate Bicep template
+        run: |
+          az bicep build --file infra/bicep/main.bicep
+          az deployment group validate \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --template-file infra/bicep/main.bicep \
+            --parameters infra/bicep/parameters.dev.json
+
+  build:
+    name: Build Container Image
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push' || github.event.inputs.environment != ''
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to Azure Container Registry
+        if: vars.AZURE_CONTAINER_REGISTRY != ''
+        run: |
+          az acr login --name ${{ vars.AZURE_CONTAINER_REGISTRY }}
+
+      - name: Build and push image
+        if: vars.AZURE_CONTAINER_REGISTRY != ''
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ vars.AZURE_CONTAINER_REGISTRY }}.azurecr.io/librechat:${{ github.sha }}
+            ${{ vars.AZURE_CONTAINER_REGISTRY }}.azurecr.io/librechat:latest
+          cache-from: type=registry,ref=${{ vars.AZURE_CONTAINER_REGISTRY }}.azurecr.io/librechat:buildcache
+          cache-to: type=registry,ref=${{ vars.AZURE_CONTAINER_REGISTRY }}.azurecr.io/librechat:buildcache,mode=max
+
+  deploy:
+    name: Deploy to Azure
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' || github.event.inputs.environment != ''
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: ${{ github.event.inputs.environment || 'dev' }}
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Create Resource Group
+        run: |
+          az group create \
+            --name ${{ env.AZURE_RESOURCE_GROUP }} \
+            --location ${{ env.AZURE_LOCATION }}
+
+      - name: Deploy Bicep template
+        id: deploy
+        run: |
+          DEPLOYMENT_NAME="librechat-$(date +%Y%m%d-%H%M%S)"
+          ENVIRONMENT="${{ github.event.inputs.environment || 'dev' }}"
+          
+          az deployment group create \
+            --name "$DEPLOYMENT_NAME" \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --template-file infra/bicep/main.bicep \
+            --parameters infra/bicep/parameters.${ENVIRONMENT}.json \
+            --parameters location="${{ env.AZURE_LOCATION }}" \
+            --parameters environmentName="${ENVIRONMENT}" \
+            --parameters containerImageTag="${{ github.sha }}"
+          
+          URL=$(az deployment group show \
+            --name "$DEPLOYMENT_NAME" \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query properties.outputs.librechatUrl.value \
+            -o tsv)
+          
+          echo "url=https://$URL" >> $GITHUB_OUTPUT
+          echo "### Deployment Complete! 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "LibreChat URL: https://$URL" >> $GITHUB_STEP_SUMMARY
