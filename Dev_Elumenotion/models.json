@@ -1,15 +1,15 @@
 {
   "models": [
     {
-      "deploymentName": "gpt-4-turbo",
-      "modelName": "gpt-4",
-      "version": "turbo-2024-04-09",
+      "deploymentName": "gpt-5.2-codex",
+      "modelName": "gpt-5.2-codex",
+      "version": "2026-01-14",
       "capacity": 75
     },
     {
-      "deploymentName": "gpt-35-turbo-16k",
-      "modelName": "gpt-35-turbo-16k",
-      "version": "0613",
+      "deploymentName": "gpt-5.2",
+      "modelName": "gpt-5.2",
+      "version": "2025-12-11",
       "capacity": 150
     }
   ]

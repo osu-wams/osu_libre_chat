@@ -1,8 +1,8 @@
 targetScope = 'subscription'
 
 param resourcegroup string
-param location string = 'eastus'
-param openAiService_location string = 'swedencentral'
+param location string = 'westus2'
+param openAiService_location string = 'eastus2'
 
 resource rg 'Microsoft.Resources/resourceGroups@2020-06-01' = {
   name: resourcegroup

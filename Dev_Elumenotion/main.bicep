@@ -88,10 +88,12 @@ resource librechatConfig_fileShare 'Microsoft.Storage/storageAccounts/fileServic
   }
 }
 
-var rawLibrechatConfig = loadTextContent('../librechat.yaml')
-var updatedLibrechatConfig = replace(replace(rawLibrechatConfig,
-    'openai-key', openAiService.listKeys().key1),
-    'openai-instance-name', openAiService.name)
+var rawLibrechatConfig = loadTextContent('./librechat.yaml')
+var updatedLibrechatConfig = replace(
+  replace(rawLibrechatConfig, 'openai-key', openAiService.listKeys().key1),
+  'openai-instance-name',
+  openAiService.name
+)
 
 // Upload librechat.yaml to librechat-config file share
 resource uploadLibrechatConfig_deploymentScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
@@ -152,12 +154,12 @@ resource openAiService 'Microsoft.CognitiveServices/accounts@2023-10-01-preview'
 var models = loadJsonContent('./models.json').models
 
 // Loop over each model in the loaded JSON and create a resource for it
-@batchSize(1) // Ensure that the deployment is executed sequentially
+@batchSize(1)
 resource openAiModels 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-preview' = [for (model, i) in models: {
   parent: openAiService
   name: model.deploymentName
   sku: {
-    name: 'Standard' // Assuming the SKU is "Standard" for all models; adjust as needed
+    name: 'Standard'
     capacity: model.capacity
   }
   properties: {
@@ -262,7 +264,7 @@ resource mongodb_containerApp 'Microsoft.App/containerApps@2023-08-01-preview' =
             }
             {
               name: 'MONGODB_ROOT_PASSWORD'
-              value: 'password'
+              value: 'M0ngoP455w0rdXyZ1234567890'
             }
           ]
           volumeMounts: [
@@ -319,7 +321,7 @@ resource mongoexpress_containerApp 'Microsoft.App/containerApps@2023-08-01-previ
           env: [
             {
               name: 'ME_CONFIG_MONGODB_URL'
-              value: 'mongodb://root:password@mongodb-${appSuffix}:27017'
+              value: 'mongodb://root:M0ngoP455w0rdXyZ1234567890@mongodb-${appSuffix}:27017'
             }
             {
               name: 'ME_CONFIG_MONGODB_ADMINUSERNAME'
@@ -327,7 +329,7 @@ resource mongoexpress_containerApp 'Microsoft.App/containerApps@2023-08-01-previ
             }
             {
               name: 'ME_CONFIG_MONGODB_ADMINPASSWORD'
-              value: 'password'
+              value: 'M0ngoP455w0rdXyZ1234567890'
             }
           ]
         }
@@ -374,7 +376,7 @@ resource mongoexpress_authConfig 'Microsoft.App/containerApps/authConfigs@2024-0
   name: 'current'
   parent: mongoexpress_containerApp
   properties: {
-    platform:{
+    platform: {
       enabled: true
     }
     identityProviders: {
@@ -460,19 +462,19 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             }
             {
               name: 'CREDS_KEY'
-              value: 'f34be427ebb29de8d88c107a71546019685ed8b241d8f2ed00c3df97ad2566f0'
+              value: '9f39d4a0b2e7c5d84f6a19b3c7e4d5a6b8c0f1e29384756a1b2c3d4e5f6a7b8'
             }
             {
               name: 'CREDS_IV'
-              value: 'e2341419ec3dd3d19b13a1a87fafcbfb'
+              value: '2a4c6e8f0b1d3f5a7c9e1b3d5f7a9c0e2f4a6c8e0b2d4f6a8c0e2f4a6c8e0b2'
             }
             {
               name: 'JWT_SECRET'
-              value: '16f8c0ef4a5d391b26034086c628469d3f9f497f08163ab9b40137092f2909ef'
+              value: '7c8d9e0f1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c'
             }
             {
               name: 'JWT_REFRESH_SECRET'
-              value: 'eaa5191f2914e30b9387fd84e254e4ba6fc51b4654968a9b0803b456a54b8418'
+              value: 'abc123def4567890fedcba0987654321abc123def4567890fedcba0987654321'
             }
             {
               name: 'ALLOW_EMAIL_LOGIN'
