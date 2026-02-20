@@ -6,8 +6,6 @@ param storeAdminAuthTenantId string = subscription().tenantId
 param mongoexpress_appRegistration_Guid string = newGuid()
 param createMonogexpressAuthConfig bool = false
 
-provider microsoftGraph
-
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: 'log-analytics-${appSuffix}'
   location: location
@@ -337,60 +335,6 @@ resource mongoexpress_containerApp 'Microsoft.App/containerApps@2023-08-01-previ
       scale: {
         minReplicas: 1
         maxReplicas: 1
-      }
-    }
-  }
-}
-
-resource mongoexpress_appRegistration 'Microsoft.Graph/applications@v1.0' = if (createMonogexpressAuthConfig) {
-  uniqueName: 'mongoexpress-${appSuffix}'
-  displayName: 'mongoexpress-${appSuffix}'
-  signInAudience: 'AzureADMyOrg'
-  web: {
-    redirectUris: [
-      'https://${mongoexpress_containerApp.properties.configuration.ingress.fqdn}/.auth/login/aad/callback'
-    ]
-    implicitGrantSettings: {
-      enableIdTokenIssuance: true
-      enableAccessTokenIssuance: false
-    }
-  }
-  api: {
-    acceptMappedClaims: false
-    oauth2PermissionScopes: [
-      {
-        adminConsentDescription: 'Allow the application to access mongoexpress on behalf of the signed-in user.'
-        adminConsentDisplayName: 'Access mongoexpress'
-        id: mongoexpress_appRegistration_Guid
-        isEnabled: true
-        type: 'User'
-        userConsentDescription: 'Allow the application to access mongoexpress on your behalf.'
-        userConsentDisplayName: 'Access mongoexpress'
-        value: 'user_impersonation'
-      }
-    ]
-  }
-}
-
-resource mongoexpress_authConfig 'Microsoft.App/containerApps/authConfigs@2024-03-01' = if (createMonogexpressAuthConfig) {
-  name: 'current'
-  parent: mongoexpress_containerApp
-  properties: {
-    platform: {
-      enabled: true
-    }
-    identityProviders: {
-      azureActiveDirectory: {
-        enabled: true
-        registration: {
-          clientId: mongoexpress_appRegistration.appId
-          openIdIssuer: 'https://sts.windows.net/${storeAdminAuthTenantId}/v2.0'
-        }
-        validation: {
-          allowedAudiences: [
-            'api://${mongoexpress_appRegistration.appId}'
-          ]
-        }
       }
     }
   }

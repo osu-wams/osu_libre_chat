@@ -1,6 +1,6 @@
 endpoints:
   azureOpenAI:
-    # Other azureOpenAI settings can go here if needed (...)
+    # Additional azureOpenAI settings can go here if needed
     groups:
       - group: "openai"
         apiKey: "openai-key"
@@ -8,9 +8,6 @@ endpoints:
         forcePrompt: false
         assistants: true
         models:
-          gpt-5.2-codex:
-            deploymentName: gpt-5.2-codex
-            version: "2026-01-14"
-          gpt-5.2:
-            deploymentName: gpt-5.2
-            version: "2025-12-11"
+          gpt-5:
+            deploymentName: gpt-5
+            version: "2025-08-07"

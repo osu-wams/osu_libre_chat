@@ -1,15 +1,9 @@
 {
   "models": [
     {
-      "deploymentName": "gpt-5.2-codex",
-      "modelName": "gpt-5.2-codex",
-      "version": "2026-01-14",
-      "capacity": 75
-    },
-    {
-      "deploymentName": "gpt-5.2",
-      "modelName": "gpt-5.2",
-      "version": "2025-12-11",
+      "deploymentName": "gpt-5",
+      "modelName": "gpt-5",
+      "version": "2025-08-07",
       "capacity": 150
     }
   ]
