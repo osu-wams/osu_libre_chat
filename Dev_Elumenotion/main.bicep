@@ -1,10 +1,13 @@
 param appSuffix string = uniqueString(resourceGroup().id)
 param containerAppEnvrionmentName string = 'managedEnvironment-${appSuffix}'
 param location string = resourceGroup().location
-param openAiService_location string = 'swedencentral'
-param storeAdminAuthTenantId string = subscription().tenantId
-param mongoexpress_appRegistration_Guid string = newGuid()
-param createMonogexpressAuthConfig bool = false
+
+@description('Name of the existing Azure OpenAI instance (the subdomain part, e.g. eastus2-dev-librechat)')
+param openAiInstanceName string
+
+@description('API key for the existing Azure OpenAI instance')
+@secure()
+param openAiApiKey string
 
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: 'log-analytics-${appSuffix}'
@@ -87,10 +90,12 @@ resource librechatConfig_fileShare 'Microsoft.Storage/storageAccounts/fileServic
 }
 
 var rawLibrechatConfig = loadTextContent('./librechat.yaml')
+
+// Replace placeholders in librechat.yaml with the existing AOAI instance info
 var updatedLibrechatConfig = replace(
-  replace(rawLibrechatConfig, 'openai-key', openAiService.listKeys().key1),
+  replace(rawLibrechatConfig, 'openai-key', openAiApiKey),
   'openai-instance-name',
-  openAiService.name
+  openAiInstanceName
 )
 
 // Upload librechat.yaml to librechat-config file share
@@ -130,47 +135,6 @@ resource mongodb_fileShare 'Microsoft.Storage/storageAccounts/fileServices/share
     enabledProtocols: 'SMB'
   }
 }
-
-resource openAiService 'Microsoft.CognitiveServices/accounts@2023-10-01-preview' = {
-  name: 'openai-${appSuffix}'
-  location: openAiService_location
-  sku: {
-    name: 'S0'
-  }
-  kind: 'OpenAI'
-  properties: {
-    customSubDomainName: 'openai-${appSuffix}'
-    networkAcls: {
-      defaultAction: 'Allow'
-      virtualNetworkRules: []
-      ipRules: []
-    }
-    publicNetworkAccess: 'Enabled'
-  }
-}
-
-var models = loadJsonContent('./models.json').models
-
-// Loop over each model in the loaded JSON and create a resource for it
-@batchSize(1)
-resource openAiModels 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-preview' = [for (model, i) in models: {
-  parent: openAiService
-  name: model.deploymentName
-  sku: {
-    name: 'Standard'
-    capacity: model.capacity
-  }
-  properties: {
-    model: {
-      format: 'OpenAI'
-      name: model.modelName
-      version: model.version
-    }
-    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
-    currentCapacity: model.capacity
-    raiPolicyName: 'Microsoft.Default'
-  }
-}]
 
 resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2023-11-02-preview' = {
   name: containerAppEnvrionmentName
@@ -250,7 +214,7 @@ resource mongodb_containerApp 'Microsoft.App/containerApps@2023-08-01-preview' =
       containers: [
         {
           name: 'mongodb-${appSuffix}'
-          image: 'bitnami/mongodb:7.0.7'
+          image: 'bitnami/mongodb:latest'
           resources: {
             cpu: json('1.0')
             memory: '2Gi'
@@ -362,7 +326,7 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
       containers: [
         {
           name: 'librechat-${appSuffix}'
-          image: 'librechat/librechat:v0.7.3-rc'
+          image: 'librechat/librechat:v0.8.2'
           resources: {
             cpu: json('1.0')
             memory: '2Gi'
@@ -402,7 +366,7 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             }
             {
               name: 'MONGO_URI'
-              value: 'mongodb://mongodb-${appSuffix}:27017/LibreChat'
+              value: 'mongodb://root:M0ngoP455w0rdXyZ1234567890@mongodb-${appSuffix}:27017'
             }
             {
               name: 'CREDS_KEY'
