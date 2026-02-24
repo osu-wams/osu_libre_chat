@@ -1,10 +1,13 @@
+version: "1.2.1"
+
 endpoints:
   azureOpenAI:
     # Additional azureOpenAI settings can go here if needed
     groups:
       - group: "openai"
-        apiKey: "openai-key"           # replaced by main.bicep with openAiApiKey
-        instanceName: "openai-instance-name"  # replaced by main.bicep with openAiInstanceName
+        apiKey: "openai-key"               # replaced by main.bicep with openAiApiKey
+        instanceName: "openai-instance-name" # replaced by main.bicep with openAiInstanceName
+        version: "2025-01-01-preview"      # <-- ADD THIS (Azure OpenAI API version)
         forcePrompt: false
         assistants: true
         models:

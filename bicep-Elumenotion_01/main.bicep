@@ -121,7 +121,7 @@ resource uploadLibrechatConfig_deploymentScript 'Microsoft.Resources/deploymentS
         value: updatedLibrechatConfig
       }
     ]
-    scriptContent: 'echo "$CONTENT" > librechat.yaml && az storage file upload --source librechat.yaml -s ${librechatConfig_fileShare.name}'
+    scriptContent: 'printf %s "$CONTENT" > librechat.yaml && az storage file upload --source librechat.yaml -s ${librechatConfig_fileShare.name}'
   }
 }
 
@@ -345,6 +345,10 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
               value: 'assistants,azureOpenAI'
             }
             {
+              name: 'OPENAI_MODELS'
+              value: 'gpt-5-codex,gpt-5'
+            }
+            {
               name: 'DOMAIN_CLIENT'
               value: 'http://localhost:3080'
             }
@@ -407,6 +411,14 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             {
               name: 'CUSTOM_FOOTER'
               value: 'ChatGPT can make mistakes. Check important info.'
+            }
+            {
+              name: 'NO_INDEX'
+              value: 'true'
+            }
+            {
+              name: 'ALLOW_SHARED_LINKS_PUBLIC'
+              value: 'false'
             }
           ]
           volumeMounts: [
