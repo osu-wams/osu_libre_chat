@@ -9,6 +9,18 @@ param openAiInstanceName string
 @secure()
 param openAiApiKey string
 
+@description('Deployment name for the model-router deployment in Azure OpenAI')
+param modelRouterDeploymentName string = 'model-router'
+
+@description('Deployment name for the gpt-5-codex deployment in Azure OpenAI')
+param gpt5CodexDeploymentName string = 'gpt-5-codex'
+
+@description('Deployment name for the gpt-5 deployment in Azure OpenAI')
+param gpt5DeploymentName string = 'gpt-5'
+
+// ---------------------------------------------------------
+// Log Analytics
+// ---------------------------------------------------------
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: 'log-analytics-${appSuffix}'
   location: location
@@ -19,6 +31,9 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09
   }
 }
 
+// ---------------------------------------------------------
+// Storage Account
+// ---------------------------------------------------------
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-04-01' = {
   name: 'storage${appSuffix}'
   location: location
@@ -89,13 +104,39 @@ resource librechatConfig_fileShare 'Microsoft.Storage/storageAccounts/fileServic
   }
 }
 
+// Load the local librechat.yaml template
 var rawLibrechatConfig = loadTextContent('./librechat.yaml')
 
 // Replace placeholders in librechat.yaml with the existing AOAI instance info
-var updatedLibrechatConfig = replace(
-  replace(rawLibrechatConfig, 'openai-key', openAiApiKey),
+// and the deployment names
+var updatedLibrechatConfig_step1 = replace(
+  rawLibrechatConfig,
+  'openai-key',
+  openAiApiKey
+)
+
+var updatedLibrechatConfig_step2 = replace(
+  updatedLibrechatConfig_step1,
   'openai-instance-name',
   openAiInstanceName
+)
+
+var updatedLibrechatConfig_step3 = replace(
+  updatedLibrechatConfig_step2,
+  'openai-model-router-deployment-name',
+  modelRouterDeploymentName
+)
+
+var updatedLibrechatConfig_step4 = replace(
+  updatedLibrechatConfig_step3,
+  'openai-gpt5-codex-deployment-name',
+  gpt5CodexDeploymentName
+)
+
+var updatedLibrechatConfig = replace(
+  updatedLibrechatConfig_step4,
+  'openai-gpt5-deployment-name',
+  gpt5DeploymentName
 )
 
 // Upload librechat.yaml to librechat-config file share
@@ -136,6 +177,9 @@ resource mongodb_fileShare 'Microsoft.Storage/storageAccounts/fileServices/share
   }
 }
 
+// ---------------------------------------------------------
+// Container App Environment
+// ---------------------------------------------------------
 resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2023-11-02-preview' = {
   name: containerAppEnvrionmentName
   location: location
@@ -165,6 +209,7 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2023-11-02-p
   }
 }
 
+// Storage mounting for librechat-config
 resource librechatConfig_environmentStorage 'Microsoft.App/managedEnvironments/storages@2023-11-02-preview' = {
   parent: containerAppEnvironment
   name: 'librechat-config'
@@ -178,6 +223,7 @@ resource librechatConfig_environmentStorage 'Microsoft.App/managedEnvironments/s
   }
 }
 
+// Storage mounting for mongodb
 resource mongodb_environmentStorage 'Microsoft.App/managedEnvironments/storages@2023-11-02-preview' = {
   parent: containerAppEnvironment
   name: 'mongodb'
@@ -191,6 +237,9 @@ resource mongodb_environmentStorage 'Microsoft.App/managedEnvironments/storages@
   }
 }
 
+// ---------------------------------------------------------
+// MongoDB Container App
+// ---------------------------------------------------------
 resource mongodb_containerApp 'Microsoft.App/containerApps@2023-08-01-preview' = {
   name: 'mongodb-${appSuffix}'
   location: location
@@ -253,6 +302,9 @@ resource mongodb_containerApp 'Microsoft.App/containerApps@2023-08-01-preview' =
   }
 }
 
+// ---------------------------------------------------------
+// Mongo Express Container App
+// ---------------------------------------------------------
 resource mongoexpress_containerApp 'Microsoft.App/containerApps@2023-08-01-preview' = {
   name: 'mongoexpress-${appSuffix}'
   location: location
@@ -304,6 +356,9 @@ resource mongoexpress_containerApp 'Microsoft.App/containerApps@2023-08-01-previ
   }
 }
 
+// ---------------------------------------------------------
+// LibreChat Container App
+// ---------------------------------------------------------
 resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview' = {
   name: 'librechat-${appSuffix}'
   location: location
@@ -334,7 +389,7 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
           env: [
             {
               name: 'ASSISTANTS_MODELS'
-              value: ''
+              value: 'gpt-5-codex,gpt-5,model-router'
             }
             {
               name: 'HELP_AND_FAQ_URL'
@@ -346,7 +401,7 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             }
             {
               name: 'OPENAI_MODELS'
-              value: 'gpt-5-codex,gpt-5'
+              value: 'gpt-5-codex,gpt-5,model-router'
             }
             {
               name: 'DOMAIN_CLIENT'

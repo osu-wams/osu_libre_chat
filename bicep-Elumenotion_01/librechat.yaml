@@ -5,18 +5,18 @@ endpoints:
     # Additional azureOpenAI settings can go here if needed
     groups:
       - group: "openai"
-        apiKey: "openai-key"               # replaced by main.bicep with openAiApiKey
-        instanceName: "openai-instance-name" # replaced by main.bicep with openAiInstanceName
-        version: "2025-01-01-preview"      # <-- ADD THIS (Azure OpenAI API version)
+        apiKey: "openai-key"                # Bicep will replace
+        instanceName: "openai-instance-name" # Bicep will replace
+        version: "2025-01-01-preview"        # default API version
         forcePrompt: false
         assistants: true
         models:
           model-router:
-            deploymentName: model-router
-            version: "2025-11-18"
-          gpt-5-codex:
-            deploymentName: gpt-5-codex
-            version: "2025-09-15"
+            deploymentName: "openai-model-router-deployment-name"
+            version: "2025-01-01-preview"    # match Azure, 2025-11-18
           gpt-5:
-            deploymentName: gpt-5
-            version: "2025-08-07"
+            deploymentName: "openai-gpt5-deployment-name"
+            version: "2025-01-01-preview"    # match Azure, 2025-08-07
+          gpt-5-codex:
+            deploymentName: "openai-gpt5-codex-deployment-name"
+            version: "2025-04-01-preview"    # match Azure, 2025-09-15
