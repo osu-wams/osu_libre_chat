@@ -1,2 +1,3 @@
-/bicep-Elumenotion_01/launch-success-JSON
-/bicep-Elumenotion_01/*.txt
+main.parameters.json
+/bicep-launch-json
+*.txt

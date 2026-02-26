@@ -12,11 +12,38 @@ param openAiApiKey string
 @description('Deployment name for the model-router deployment in Azure OpenAI')
 param modelRouterDeploymentName string = 'model-router'
 
-@description('Deployment name for the gpt-5-codex deployment in Azure OpenAI')
-param gpt5CodexDeploymentName string = 'gpt-5-codex'
+@description('Deployment name for the gpt-5.2 deployment in Azure OpenAI')
+param gpt52DeploymentName string = 'gpt-5.2'
 
-@description('Deployment name for the gpt-5 deployment in Azure OpenAI')
-param gpt5DeploymentName string = 'gpt-5'
+@description('Deployment name for the gpt-4o-mini-transcribe deployment in Azure OpenAI')
+param gpt4oMiniTranscribeDeploymentName string = 'gpt-4o-mini-transcribe'
+
+@description('Deployment name for the gpt-4o-mini-tts deployment in Azure OpenAI')
+param gpt4oMiniTtsDeploymentName string = 'gpt-4o-mini-tts'
+
+@description('MongoDB root password')
+@secure()
+param mongoRootPassword string
+
+@description('LibreChat credentials encryption key')
+@secure()
+param librechatCredsKey string
+
+@description('LibreChat credentials encryption IV')
+@secure()
+param librechatCredsIv string
+
+@description('LibreChat JWT secret')
+@secure()
+param librechatJwtSecret string
+
+@description('LibreChat JWT refresh secret')
+@secure()
+param librechatJwtRefreshSecret string
+
+// Deterministic in-environment Mongo hostname (no parameter-file <suffix> needed)
+var mongoHost = 'mongodb-${appSuffix}'
+var mongoPort = '27017'
 
 // ---------------------------------------------------------
 // Log Analytics
@@ -129,14 +156,20 @@ var updatedLibrechatConfig_step3 = replace(
 
 var updatedLibrechatConfig_step4 = replace(
   updatedLibrechatConfig_step3,
-  'openai-gpt5-codex-deployment-name',
-  gpt5CodexDeploymentName
+  'openai-gpt5.2-deployment-name',
+  gpt52DeploymentName
+)
+
+var updatedLibrechatConfig_step5 = replace(
+  updatedLibrechatConfig_step4,
+  'openai-gpt4o-mini-transcribe-deployment-name',
+  gpt4oMiniTranscribeDeploymentName
 )
 
 var updatedLibrechatConfig = replace(
-  updatedLibrechatConfig_step4,
-  'openai-gpt5-deployment-name',
-  gpt5DeploymentName
+  updatedLibrechatConfig_step5,
+  'openai-gpt4o-mini-tts-deployment-name',
+  gpt4oMiniTtsDeploymentName
 )
 
 // Upload librechat.yaml to librechat-config file share
@@ -246,6 +279,12 @@ resource mongodb_containerApp 'Microsoft.App/containerApps@2023-08-01-preview' =
   properties: {
     managedEnvironmentId: containerAppEnvironment.id
     configuration: {
+      secrets: [
+        {
+          name: 'mongo-root-password'
+          value: mongoRootPassword
+        }
+      ]
       ingress: {
         external: false
         transport: 'tcp'
@@ -275,7 +314,7 @@ resource mongodb_containerApp 'Microsoft.App/containerApps@2023-08-01-preview' =
             }
             {
               name: 'MONGODB_ROOT_PASSWORD'
-              value: 'M0ngoP455w0rdXyZ1234567890'
+              secretRef: 'mongo-root-password'
             }
           ]
           volumeMounts: [
@@ -311,6 +350,22 @@ resource mongoexpress_containerApp 'Microsoft.App/containerApps@2023-08-01-previ
   properties: {
     managedEnvironmentId: containerAppEnvironment.id
     configuration: {
+      secrets: [
+        {
+          name: 'mongoexpress-ui-username'
+          value: 'imperator' // or change if you want
+        }
+        {
+          name: 'mongoexpress-ui-password'
+          value: mongoRootPassword
+        }
+        {
+          name: 'mongoexpress-mongo-url'
+          // Silence linter: value contains a secret-derived expression; still stored as a Container App secret
+          #disable-next-line use-secure-value-for-secure-inputs
+          value: 'mongodb://root:${mongoRootPassword}@${mongoHost}:${mongoPort}'
+        }
+      ]
       ingress: {
         external: true
         transport: 'http'
@@ -334,16 +389,24 @@ resource mongoexpress_containerApp 'Microsoft.App/containerApps@2023-08-01-previ
           }
           env: [
             {
+              name: 'ME_CONFIG_BASICAUTH'
+              value: 'true'
+            }
+            {
+              name: 'ME_CONFIG_BASICAUTH_USERNAME'
+              secretRef: 'mongoexpress-ui-username'
+            }
+            {
+              name: 'ME_CONFIG_BASICAUTH_PASSWORD'
+              secretRef: 'mongoexpress-ui-password'
+            }
+            {
+              name: 'ME_CONFIG_MONGODB_ENABLE_ADMIN'
+              value: 'true'
+            }
+            {
               name: 'ME_CONFIG_MONGODB_URL'
-              value: 'mongodb://root:M0ngoP455w0rdXyZ1234567890@mongodb-${appSuffix}:27017'
-            }
-            {
-              name: 'ME_CONFIG_MONGODB_ADMINUSERNAME'
-              value: 'root'
-            }
-            {
-              name: 'ME_CONFIG_MONGODB_ADMINPASSWORD'
-              value: 'M0ngoP455w0rdXyZ1234567890'
+              secretRef: 'mongoexpress-mongo-url'
             }
           ]
         }
@@ -365,6 +428,30 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
   properties: {
     managedEnvironmentId: containerAppEnvironment.id
     configuration: {
+      secrets: [
+        {
+          name: 'librechat-mongo-uri'
+          // Silence linter: value contains a secret-derived expression; still stored as a Container App secret
+          #disable-next-line use-secure-value-for-secure-inputs
+          value: 'mongodb://root:${mongoRootPassword}@${mongoHost}:${mongoPort}'
+        }
+        {
+          name: 'librechat-creds-key'
+          value: librechatCredsKey
+        }
+        {
+          name: 'librechat-creds-iv'
+          value: librechatCredsIv
+        }
+        {
+          name: 'librechat-jwt-secret'
+          value: librechatJwtSecret
+        }
+        {
+          name: 'librechat-jwt-refresh-secret'
+          value: librechatJwtRefreshSecret
+        }
+      ]
       ingress: {
         external: true
         transport: 'http'
@@ -389,7 +476,7 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
           env: [
             {
               name: 'ASSISTANTS_MODELS'
-              value: 'gpt-5-codex,gpt-5,model-router'
+              value: 'gpt-5.2,gpt-4o-mini-transcribe,gpt-4o-mini-tts,model-router'
             }
             {
               name: 'HELP_AND_FAQ_URL'
@@ -401,7 +488,7 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             }
             {
               name: 'OPENAI_MODELS'
-              value: 'gpt-5-codex,gpt-5,model-router'
+              value: 'gpt-5.2,gpt-4o-mini-transcribe,gpt-4o-mini-tts,model-router'
             }
             {
               name: 'DOMAIN_CLIENT'
@@ -425,23 +512,23 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             }
             {
               name: 'MONGO_URI'
-              value: 'mongodb://root:M0ngoP455w0rdXyZ1234567890@mongodb-${appSuffix}:27017'
+              secretRef: 'librechat-mongo-uri'
             }
             {
               name: 'CREDS_KEY'
-              value: '9f39d4a0b2e7c5d84f6a19b3c7e4d5a6b8c0f1e29384756a1b2c3d4e5f6a7b8'
+              secretRef: 'librechat-creds-key'
             }
             {
               name: 'CREDS_IV'
-              value: '2a4c6e8f0b1d3f5a7c9e1b3d5f7a9c0e2f4a6c8e0b2d4f6a8c0e2f4a6c8e0b2'
+              secretRef: 'librechat-creds-iv'
             }
             {
               name: 'JWT_SECRET'
-              value: '7c8d9e0f1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c'
+              secretRef: 'librechat-jwt-secret'
             }
             {
               name: 'JWT_REFRESH_SECRET'
-              value: 'abc123def4567890fedcba0987654321abc123def4567890fedcba0987654321'
+              secretRef: 'librechat-jwt-refresh-secret'
             }
             {
               name: 'ALLOW_EMAIL_LOGIN'
