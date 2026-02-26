@@ -5,7 +5,7 @@ endpoints:
     # Additional azureOpenAI settings can go here if needed
     groups:
       - group: "openai"
-        apiKey: "openai-key"                # Bicep will replace
+        apiKey: ""                # Bicep will replace
         instanceName: "openai-instance-name" # Bicep will replace
         version: "2025-01-01-preview"        # default API version
         forcePrompt: false

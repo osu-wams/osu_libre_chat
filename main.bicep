@@ -25,6 +25,10 @@ param gpt4oMiniTtsDeploymentName string = 'gpt-4o-mini-tts'
 @secure()
 param mongoRootPassword string
 
+@description('Mongo Express UI username')
+@secure()
+param mongoexpressUiUsername string
+
 @description('LibreChat credentials encryption key')
 @secure()
 param librechatCredsKey string
@@ -138,39 +142,35 @@ var rawLibrechatConfig = loadTextContent('./librechat.yaml')
 // and the deployment names
 var updatedLibrechatConfig_step1 = replace(
   rawLibrechatConfig,
-  'openai-key',
-  openAiApiKey
-)
-
-var updatedLibrechatConfig_step2 = replace(
-  updatedLibrechatConfig_step1,
   'openai-instance-name',
   openAiInstanceName
 )
 
-var updatedLibrechatConfig_step3 = replace(
-  updatedLibrechatConfig_step2,
+var updatedLibrechatConfig_step2 = replace(
+  updatedLibrechatConfig_step1,
   'openai-model-router-deployment-name',
   modelRouterDeploymentName
 )
 
-var updatedLibrechatConfig_step4 = replace(
-  updatedLibrechatConfig_step3,
+var updatedLibrechatConfig_step3 = replace(
+  updatedLibrechatConfig_step2,
   'openai-gpt5.2-deployment-name',
   gpt52DeploymentName
 )
 
-var updatedLibrechatConfig_step5 = replace(
-  updatedLibrechatConfig_step4,
+var updatedLibrechatConfig_step4 = replace(
+  updatedLibrechatConfig_step3,
   'openai-gpt4o-mini-transcribe-deployment-name',
   gpt4oMiniTranscribeDeploymentName
 )
 
-var updatedLibrechatConfig = replace(
-  updatedLibrechatConfig_step5,
+var updatedLibrechatConfig_step5 = replace(
+  updatedLibrechatConfig_step4,
   'openai-gpt4o-mini-tts-deployment-name',
   gpt4oMiniTtsDeploymentName
 )
+
+var updatedLibrechatConfig = updatedLibrechatConfig_step5
 
 // Upload librechat.yaml to librechat-config file share
 resource uploadLibrechatConfig_deploymentScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
@@ -353,7 +353,7 @@ resource mongoexpress_containerApp 'Microsoft.App/containerApps@2023-08-01-previ
       secrets: [
         {
           name: 'mongoexpress-ui-username'
-          value: 'imperator' // or change if you want
+          value: mongoexpressUiUsername
         }
         {
           name: 'mongoexpress-ui-password'
@@ -430,6 +430,10 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
     configuration: {
       secrets: [
         {
+          name: 'openai-api-key'
+          value: openAiApiKey
+        }
+        {
           name: 'librechat-mongo-uri'
           // Silence linter: value contains a secret-derived expression; still stored as a Container App secret
           #disable-next-line use-secure-value-for-secure-inputs
@@ -475,6 +479,10 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
           }
           env: [
             {
+              name: 'OPENAI_API_KEY'
+              secretRef: 'openai-api-key'
+            }
+            {
               name: 'ASSISTANTS_MODELS'
               value: 'gpt-5.2,gpt-4o-mini-transcribe,gpt-4o-mini-tts,model-router'
             }
@@ -500,11 +508,11 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             }
             {
               name: 'DEBUG_LOGGING'
-              value: 'true'
+              value: 'false'
             }
             {
               name: 'DEBUG_CONSOLE'
-              value: 'true'
+              value: 'false'
             }
             {
               name: 'CONFIG_PATH'
@@ -548,11 +556,11 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             }
             {
               name: 'DEBUG_OPENAI'
-              value: 'true'
+              value: 'false'
             }
             {
               name: 'CUSTOM_FOOTER'
-              value: 'ChatGPT can make mistakes. Check important info.'
+              value: 'That Dam BeavrChat ∞ is powered by LibreChat and Azure OpenAI.'
             }
             {
               name: 'NO_INDEX'
