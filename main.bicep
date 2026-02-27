@@ -173,12 +173,13 @@ var rawLibrechatConfig = loadTextContent('./librechat.yaml')
 // Replace placeholders in librechat.yaml with OpenAI instance and deployment names.
 // Note: We no longer substitute the OpenAI key because it is injected via secret.
 // The YAML should leave apiKey blank.
-var updatedLibrechatConfig_1 = replace(rawLibrechatConfig, 'openai-instance-name', openAiInstanceName)
-var updatedLibrechatConfig_2 = replace(updatedLibrechatConfig_1, 'openai-model-router-deployment-name', modelRouterDeploymentName)
-var updatedLibrechatConfig_3 = replace(updatedLibrechatConfig_2, 'openai-gpt5.2-deployment-name', gpt52DeploymentName)
-var updatedLibrechatConfig_4 = replace(updatedLibrechatConfig_3, 'openai-gpt4o-mini-transcribe-deployment-name', gpt4oMiniTranscribeDeploymentName)
-var updatedLibrechatConfig_5 = replace(updatedLibrechatConfig_4, 'openai-gpt4o-mini-tts-deployment-name', gpt4oMiniTtsDeploymentName)
-var updatedLibrechatConfig = updatedLibrechatConfig_5
+var updatedLibrechatConfig_1 = replace(rawLibrechatConfig, 'openai-api-key', openAiApiKey)
+var updatedLibrechatConfig_2 = replace(updatedLibrechatConfig_1, 'openai-instance-name', openAiInstanceName)
+var updatedLibrechatConfig_3 = replace(updatedLibrechatConfig_2, 'openai-model-router-deployment-name', modelRouterDeploymentName)
+var updatedLibrechatConfig_4 = replace(updatedLibrechatConfig_3, 'openai-gpt5.2-deployment-name', gpt52DeploymentName)
+var updatedLibrechatConfig_5 = replace(updatedLibrechatConfig_4, 'openai-gpt4o-mini-transcribe-deployment-name', gpt4oMiniTranscribeDeploymentName)
+var updatedLibrechatConfig_6 = replace(updatedLibrechatConfig_5, 'openai-gpt4o-mini-tts-deployment-name', gpt4oMiniTtsDeploymentName)
+var updatedLibrechatConfig = updatedLibrechatConfig_6
 
 resource uploadLibrechatConfig_deploymentScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
   name: 'upload-librechat-config-${appSuffix}'
@@ -360,7 +361,7 @@ resource mongoexpress_containerApp 'Microsoft.App/containerApps@2023-08-01-previ
       secrets: [
         {
           name: 'mongoexpress-ui-username'
-          value: 'imperator'        // or use a secure parameter in future
+          value: mongoexpressUiUsername
         }
         {
           name: 'mongoexpress-ui-password'
