@@ -202,10 +202,13 @@ resource uploadLibrechatConfig_deploymentScript 'Microsoft.Resources/deploymentS
         value: updatedLibrechatConfig
       }
     ]
-    scriptContent: '
+    scriptContent: '''
+      #!/bin/bash
+      set -e
+
       printf %s "$CONTENT" > librechat.yaml
       az storage file upload --source librechat.yaml -s ${librechatConfig_fileShare.name}
-    '
+    '''
   }
 }
 
@@ -577,7 +580,7 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             }
             {
               name: 'OPENID_SCOPE'
-              value: 'openid profile email offline_access'
+              value: 'api://50963c60-3b2e-40d4-9272-34f10d276755/.default openid profile email offline_access'
             }
             {
               name: 'OPENID_CALLBACK_URL'
