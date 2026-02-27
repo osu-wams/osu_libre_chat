@@ -142,35 +142,41 @@ var rawLibrechatConfig = loadTextContent('./librechat.yaml')
 // and the deployment names
 var updatedLibrechatConfig_step1 = replace(
   rawLibrechatConfig,
-  'openai-instance-name',
-  openAiInstanceName
+  'openai-api-key',
+  openAiApiKey
 )
 
 var updatedLibrechatConfig_step2 = replace(
   updatedLibrechatConfig_step1,
-  'openai-model-router-deployment-name',
-  modelRouterDeploymentName
+  'openai-instance-name',
+  openAiInstanceName
 )
 
 var updatedLibrechatConfig_step3 = replace(
   updatedLibrechatConfig_step2,
-  'openai-gpt5.2-deployment-name',
-  gpt52DeploymentName
+  'openai-model-router-deployment-name',
+  modelRouterDeploymentName
 )
 
 var updatedLibrechatConfig_step4 = replace(
   updatedLibrechatConfig_step3,
-  'openai-gpt4o-mini-transcribe-deployment-name',
-  gpt4oMiniTranscribeDeploymentName
+  'openai-gpt5.2-deployment-name',
+  gpt52DeploymentName
 )
 
 var updatedLibrechatConfig_step5 = replace(
   updatedLibrechatConfig_step4,
+  'openai-gpt4o-mini-transcribe-deployment-name',
+  gpt4oMiniTranscribeDeploymentName
+)
+
+var updatedLibrechatConfig_step6 = replace(
+  updatedLibrechatConfig_step5,
   'openai-gpt4o-mini-tts-deployment-name',
   gpt4oMiniTtsDeploymentName
 )
 
-var updatedLibrechatConfig = updatedLibrechatConfig_step5
+var updatedLibrechatConfig = updatedLibrechatConfig_step6
 
 // Upload librechat.yaml to librechat-config file share
 resource uploadLibrechatConfig_deploymentScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
