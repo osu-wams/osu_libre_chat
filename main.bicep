@@ -25,6 +25,10 @@ param gpt4oMiniTtsDeploymentName string = 'gpt-4o-mini-tts'
 @secure()
 param mongoRootPassword string
 
+@description('Mongo Express UI basic auth username')
+@secure()
+param mongoexpressUiUsername string
+
 @description('LibreChat credentials encryption key')
 @secure()
 param librechatCredsKey string
@@ -189,6 +193,7 @@ resource uploadLibrechatConfig_deploymentScript 'Microsoft.Resources/deploymentS
     azCliVersion: '2.59.0'
     timeout: 'PT5M'
     retentionInterval: 'PT1H'
+
     environmentVariables: [
       {
         name: 'AZURE_STORAGE_ACCOUNT'
@@ -199,17 +204,28 @@ resource uploadLibrechatConfig_deploymentScript 'Microsoft.Resources/deploymentS
         secureValue: storageAccount.listKeys().keys[0].value
       }
       {
+        name: 'SHARE_NAME'
+        value: librechatConfig_fileShare.name
+      }
+      {
         name: 'CONTENT'
         value: updatedLibrechatConfig
       }
     ]
-    scriptContent: '''
-      #!/bin/bash
-      set -e
 
-      printf %s "$CONTENT" > librechat.yaml
-      az storage file upload --source librechat.yaml -s ${librechatConfig_fileShare.name}
-    '''
+    scriptContent: '''
+#!/bin/bash
+set -euo pipefail
+
+printf %s "$CONTENT" > librechat.yaml
+
+az storage file upload \
+  --account-name "$AZURE_STORAGE_ACCOUNT" \
+  --account-key "$AZURE_STORAGE_KEY" \
+  --share-name "$SHARE_NAME" \
+  --source librechat.yaml \
+  --only-show-errors
+'''
   }
 }
 
@@ -555,11 +571,11 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             // Domain configuration (update with your external domain or keep localhost)
             {
               name: 'DOMAIN_CLIENT'
-              value: 'http://localhost:3080'
+              value: 'https://librechat-fmptzaqwvzjao.purpleground-32e533d9.eastus2.azurecontainerapps.io'
             }
             {
               name: 'DOMAIN_SERVER'
-              value: 'http://localhost:3080'
+              value: 'https://librechat-fmptzaqwvzjao.purpleground-32e533d9.eastus2.azurecontainerapps.io'
             }
             // ----------------------------------------------------------------
             // OpenID/OIDC variables for Azure Entra ID (single tenant)
@@ -661,15 +677,19 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             // Operational defaults (already hardened)
             {
               name: 'DEBUG_LOGGING'
-              value: 'false'
+              value: 'true'
             }
             {
               name: 'DEBUG_CONSOLE'
-              value: 'false'
+              value: 'true'
             }
             {
               name: 'DEBUG_OPENAI'
-              value: 'false'
+              value: 'true'
+            }
+            {
+              name: 'DEBUG_OPENID_REQUESTS'
+              value: 'true'
             }
             {
               name: 'HELP_AND_FAQ_URL'
