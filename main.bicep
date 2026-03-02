@@ -677,19 +677,19 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             // Operational defaults (already hardened)
             {
               name: 'DEBUG_LOGGING'
-              value: 'true'
+              value: 'false'
             }
             {
               name: 'DEBUG_CONSOLE'
-              value: 'true'
+              value: 'false'
             }
             {
               name: 'DEBUG_OPENAI'
-              value: 'true'
+              value: 'false'
             }
             {
               name: 'DEBUG_OPENID_REQUESTS'
-              value: 'true'
+              value: 'false'
             }
             {
               name: 'HELP_AND_FAQ_URL'
