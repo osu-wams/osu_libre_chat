@@ -25,7 +25,7 @@ param gpt4oMiniTtsDeploymentName string = 'gpt-4o-mini-tts'
 @secure()
 param mongoRootPassword string
 
-@description('Mongo Express UI username')
+@description('Mongo Express UI basic auth username')
 @secure()
 param mongoexpressUiUsername string
 
@@ -45,13 +45,60 @@ param librechatJwtSecret string
 @secure()
 param librechatJwtRefreshSecret string
 
-// Deterministic in-environment Mongo hostname (no parameter-file <suffix> needed)
+// -----------------------------------------------------------------------------
+// Azure Entra / OpenID parameters (single-tenant)
+// -----------------------------------------------------------------------------
+@description('Azure Entra app client ID (OIDC)')
+@secure()
+param azureOpenIdClientId string
+
+@description('Azure Entra app client secret (OIDC)')
+@secure()
+param azureOpenIdClientSecret string
+
+@description('Azure Entra tenant ID (OIDC issuer)')
+param azureOpenIdTenantId string
+
+@description('A random session secret used for OpenID sessions (e.g. cookie encryption)')
+@secure()
+param openIdSessionSecret string
+
+@description('Optional: the JSON path inside a token where required roles reside (default: "roles")')
+param openIdRequiredRoleParameterPath string = 'roles'
+
+@description('Optional: comma-separated names of groups/roles in Entra that users must belong to')
+param openIdRequiredRole string = ''
+
+// -----------------------------------------------------------------------------
+// SharePoint Integration Parameters
+// -----------------------------------------------------------------------------
+@description('Base URL of the SharePoint tenant (e.g., https://contoso.sharepoint.com)')
+param sharePointBaseUrl string
+
+@description('Scope for SharePoint picker (SharePoint API)')
+param sharePointPickerSharePointScope string
+
+@description('Scope for file downloads (Microsoft Graph API)')
+param sharePointPickerGraphScope string = 'Files.Read.All'
+
+// -----------------------------------------------------------------------------
+// Speech (STT/TTS) Parameters
+// -----------------------------------------------------------------------------
+@description('Speech-to-Text API key (used for STT_API_KEY in LibreChat)')
+@secure()
+param sttApiKey string
+
+@description('Text-to-Speech API key (used for TTS_API_KEY in LibreChat)')
+@secure()
+param ttsApiKey string
+
+// Determine the deterministic MongoDB host name
 var mongoHost = 'mongodb-${appSuffix}'
 var mongoPort = '27017'
 
-// ---------------------------------------------------------
-// Log Analytics
-// ---------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Log Analytics Workspace
+// -----------------------------------------------------------------------------
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: 'log-analytics-${appSuffix}'
   location: location
@@ -62,9 +109,9 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09
   }
 }
 
-// ---------------------------------------------------------
-// Storage Account
-// ---------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Storage Account (unchanged for brevity — see prior version)
+// -----------------------------------------------------------------------------
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-04-01' = {
   name: 'storage${appSuffix}'
   location: location
@@ -75,11 +122,11 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-04-01' = {
   properties: {
     dnsEndpointType: 'Standard'
     defaultToOAuthAuthentication: false
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: 'Enabled' // Consider hardening later
     allowCrossTenantReplication: false
     minimumTlsVersion: 'TLS1_2'
     allowBlobPublicAccess: false
-    allowSharedKeyAccess: true
+    allowSharedKeyAccess: true // For demo; consider MI later
     largeFileSharesState: 'Enabled'
     networkAcls: {
       bypass: 'AzureServices'
@@ -106,7 +153,6 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-04-01' = {
   }
 }
 
-// Create a file service for librechat-config and mongodb
 resource storageAccount_fileService 'Microsoft.Storage/storageAccounts/fileServices@2023-04-01' = {
   parent: storageAccount
   name: 'default'
@@ -124,7 +170,6 @@ resource storageAccount_fileService 'Microsoft.Storage/storageAccounts/fileServi
   }
 }
 
-// librechat-config file share
 resource librechatConfig_fileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-04-01' = {
   parent: storageAccount_fileService
   name: 'librechat-config'
@@ -135,50 +180,20 @@ resource librechatConfig_fileShare 'Microsoft.Storage/storageAccounts/fileServic
   }
 }
 
-// Load the local librechat.yaml template
+// -----------------------------------------------------------------------------
+// Load librechat.yaml template and perform placeholder replacements
+// -----------------------------------------------------------------------------
 var rawLibrechatConfig = loadTextContent('./librechat.yaml')
 
-// Replace placeholders in librechat.yaml with the existing AOAI instance info
-// and the deployment names
-var updatedLibrechatConfig_step1 = replace(
-  rawLibrechatConfig,
-  'openai-api-key',
-  openAiApiKey
-)
+// Currently still replacing the OpenAI key placeholder (as in your existing file)
+var updatedLibrechatConfig_1 = replace(rawLibrechatConfig, 'openai-api-key', openAiApiKey)
+var updatedLibrechatConfig_2 = replace(updatedLibrechatConfig_1, 'openai-instance-name', openAiInstanceName)
+var updatedLibrechatConfig_3 = replace(updatedLibrechatConfig_2, 'openai-model-router-deployment-name', modelRouterDeploymentName)
+var updatedLibrechatConfig_4 = replace(updatedLibrechatConfig_3, 'openai-gpt5.2-deployment-name', gpt52DeploymentName)
+var updatedLibrechatConfig_5 = replace(updatedLibrechatConfig_4, 'openai-gpt4o-mini-transcribe-deployment-name', gpt4oMiniTranscribeDeploymentName)
+var updatedLibrechatConfig_6 = replace(updatedLibrechatConfig_5, 'openai-gpt4o-mini-tts-deployment-name', gpt4oMiniTtsDeploymentName)
+var updatedLibrechatConfig = updatedLibrechatConfig_6
 
-var updatedLibrechatConfig_step2 = replace(
-  updatedLibrechatConfig_step1,
-  'openai-instance-name',
-  openAiInstanceName
-)
-
-var updatedLibrechatConfig_step3 = replace(
-  updatedLibrechatConfig_step2,
-  'openai-model-router-deployment-name',
-  modelRouterDeploymentName
-)
-
-var updatedLibrechatConfig_step4 = replace(
-  updatedLibrechatConfig_step3,
-  'openai-gpt5.2-deployment-name',
-  gpt52DeploymentName
-)
-
-var updatedLibrechatConfig_step5 = replace(
-  updatedLibrechatConfig_step4,
-  'openai-gpt4o-mini-transcribe-deployment-name',
-  gpt4oMiniTranscribeDeploymentName
-)
-
-var updatedLibrechatConfig_step6 = replace(
-  updatedLibrechatConfig_step5,
-  'openai-gpt4o-mini-tts-deployment-name',
-  gpt4oMiniTtsDeploymentName
-)
-
-var updatedLibrechatConfig = updatedLibrechatConfig_step6
-
-// Upload librechat.yaml to librechat-config file share
 resource uploadLibrechatConfig_deploymentScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
   name: 'upload-librechat-config-${appSuffix}'
   location: location
@@ -197,15 +212,31 @@ resource uploadLibrechatConfig_deploymentScript 'Microsoft.Resources/deploymentS
         secureValue: storageAccount.listKeys().keys[0].value
       }
       {
+        name: 'SHARE_NAME'
+        value: librechatConfig_fileShare.name
+      }
+      {
         name: 'CONTENT'
         value: updatedLibrechatConfig
       }
     ]
-    scriptContent: 'printf %s "$CONTENT" > librechat.yaml && az storage file upload --source librechat.yaml -s ${librechatConfig_fileShare.name}'
+    scriptContent: '''
+#!/bin/bash
+set -euo pipefail
+printf %s "$CONTENT" > librechat.yaml
+az storage file upload \
+  --account-name "$AZURE_STORAGE_ACCOUNT" \
+  --account-key "$AZURE_STORAGE_KEY" \
+  --share-name "$SHARE_NAME" \
+  --source librechat.yaml \
+  --only-show-errors
+'''
   }
 }
 
-// mongodb file share
+// -----------------------------------------------------------------------------
+// MongoDB file share for database storage (unchanged)
+// -----------------------------------------------------------------------------
 resource mongodb_fileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-04-01' = {
   parent: storageAccount_fileService
   name: 'mongodb'
@@ -216,9 +247,9 @@ resource mongodb_fileShare 'Microsoft.Storage/storageAccounts/fileServices/share
   }
 }
 
-// ---------------------------------------------------------
-// Container App Environment
-// ---------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Container App Environment (unchanged for brevity)
+// -----------------------------------------------------------------------------
 resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2023-11-02-preview' = {
   name: containerAppEnvrionmentName
   location: location
@@ -231,24 +262,16 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2023-11-02-p
       }
     }
     zoneRedundant: false
-    kedaConfiguration: {}
-    daprConfiguration: {}
-    customDomainConfiguration: {}
     workloadProfiles: [
       {
         workloadProfileType: 'Consumption'
         name: 'Consumption'
       }
     ]
-    peerAuthentication: {
-      mtls: {
-        enabled: false
-      }
-    }
   }
 }
 
-// Storage mounting for librechat-config
+// Storage mounts in environment for librechat config and MongoDB (remains read-write)
 resource librechatConfig_environmentStorage 'Microsoft.App/managedEnvironments/storages@2023-11-02-preview' = {
   parent: containerAppEnvironment
   name: 'librechat-config'
@@ -262,7 +285,6 @@ resource librechatConfig_environmentStorage 'Microsoft.App/managedEnvironments/s
   }
 }
 
-// Storage mounting for mongodb
 resource mongodb_environmentStorage 'Microsoft.App/managedEnvironments/storages@2023-11-02-preview' = {
   parent: containerAppEnvironment
   name: 'mongodb'
@@ -276,9 +298,9 @@ resource mongodb_environmentStorage 'Microsoft.App/managedEnvironments/storages@
   }
 }
 
-// ---------------------------------------------------------
-// MongoDB Container App
-// ---------------------------------------------------------
+// -----------------------------------------------------------------------------
+// MongoDB container app (unchanged)
+// -----------------------------------------------------------------------------
 resource mongodb_containerApp 'Microsoft.App/containerApps@2023-08-01-preview' = {
   name: 'mongodb-${appSuffix}'
   location: location
@@ -347,9 +369,9 @@ resource mongodb_containerApp 'Microsoft.App/containerApps@2023-08-01-preview' =
   }
 }
 
-// ---------------------------------------------------------
-// Mongo Express Container App
-// ---------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Mongo Express container app with basic auth and secret wiring
+// -----------------------------------------------------------------------------
 resource mongoexpress_containerApp 'Microsoft.App/containerApps@2023-08-01-preview' = {
   name: 'mongoexpress-${appSuffix}'
   location: location
@@ -367,13 +389,12 @@ resource mongoexpress_containerApp 'Microsoft.App/containerApps@2023-08-01-previ
         }
         {
           name: 'mongoexpress-mongo-url'
-          // Silence linter: value contains a secret-derived expression; still stored as a Container App secret
           #disable-next-line use-secure-value-for-secure-inputs
           value: 'mongodb://root:${mongoRootPassword}@${mongoHost}:${mongoPort}'
         }
       ]
       ingress: {
-        external: true
+        external: false // internal only for security; change to true if required
         transport: 'http'
         targetPort: 8081
         traffic: [
@@ -395,6 +416,10 @@ resource mongoexpress_containerApp 'Microsoft.App/containerApps@2023-08-01-previ
           }
           env: [
             {
+              name: 'ME_CONFIG_MONGODB_URL'
+              secretRef: 'mongoexpress-mongo-url'
+            }
+            {
               name: 'ME_CONFIG_BASICAUTH'
               value: 'true'
             }
@@ -410,10 +435,6 @@ resource mongoexpress_containerApp 'Microsoft.App/containerApps@2023-08-01-previ
               name: 'ME_CONFIG_MONGODB_ENABLE_ADMIN'
               value: 'true'
             }
-            {
-              name: 'ME_CONFIG_MONGODB_URL'
-              secretRef: 'mongoexpress-mongo-url'
-            }
           ]
         }
       ]
@@ -425,9 +446,9 @@ resource mongoexpress_containerApp 'Microsoft.App/containerApps@2023-08-01-previ
   }
 }
 
-// ---------------------------------------------------------
-// LibreChat Container App
-// ---------------------------------------------------------
+// -----------------------------------------------------------------------------
+// LibreChat container app with Entra auth, token reuse, Graph, SharePoint, and STT/TTS keys
+// -----------------------------------------------------------------------------
 resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview' = {
   name: 'librechat-${appSuffix}'
   location: location
@@ -436,12 +457,7 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
     configuration: {
       secrets: [
         {
-          name: 'openai-api-key'
-          value: openAiApiKey
-        }
-        {
           name: 'librechat-mongo-uri'
-          // Silence linter: value contains a secret-derived expression; still stored as a Container App secret
           #disable-next-line use-secure-value-for-secure-inputs
           value: 'mongodb://root:${mongoRootPassword}@${mongoHost}:${mongoPort}'
         }
@@ -460,6 +476,33 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
         {
           name: 'librechat-jwt-refresh-secret'
           value: librechatJwtRefreshSecret
+        }
+        // OpenID/Entra secrets
+        {
+          name: 'azure-openid-client-id'
+          value: azureOpenIdClientId
+        }
+        {
+          name: 'azure-openid-client-secret'
+          value: azureOpenIdClientSecret
+        }
+        {
+          name: 'open-id-session-secret'
+          value: openIdSessionSecret
+        }
+        // SharePoint tenant URL as secret
+        {
+          name: 'sharepoint-base-url'
+          value: sharePointBaseUrl
+        }
+        // Speech STT/TTS API keys
+        {
+          name: 'stt-api-key'
+          value: sttApiKey
+        }
+        {
+          name: 'tts-api-key'
+          value: ttsApiKey
         }
       ]
       ingress: {
@@ -484,46 +527,25 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             memory: '2Gi'
           }
           env: [
-            {
-              name: 'OPENAI_API_KEY'
-              secretRef: 'openai-api-key'
-            }
+            // LibreChat core / models
             {
               name: 'ASSISTANTS_MODELS'
               value: 'gpt-5.2,gpt-4o-mini-transcribe,gpt-4o-mini-tts,model-router'
-            }
-            {
-              name: 'HELP_AND_FAQ_URL'
-              value: 'https://librechat.ai'
-            }
-            {
-              name: 'ENDPOINTS'
-              value: 'assistants,azureOpenAI'
             }
             {
               name: 'OPENAI_MODELS'
               value: 'gpt-5.2,gpt-4o-mini-transcribe,gpt-4o-mini-tts,model-router'
             }
             {
-              name: 'DOMAIN_CLIENT'
-              value: 'http://localhost:3080'
-            }
-            {
-              name: 'DOMAIN_SERVER'
-              value: 'http://localhost:3080'
-            }
-            {
-              name: 'DEBUG_LOGGING'
-              value: 'false'
-            }
-            {
-              name: 'DEBUG_CONSOLE'
-              value: 'false'
+              name: 'ENDPOINTS'
+              value: 'assistants,azureOpenAI'
             }
             {
               name: 'CONFIG_PATH'
               value: '/app/config-env/librechat.yaml'
             }
+
+            // Mongo & core secrets
             {
               name: 'MONGO_URI'
               secretRef: 'librechat-mongo-uri'
@@ -544,29 +566,159 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
               name: 'JWT_REFRESH_SECRET'
               secretRef: 'librechat-jwt-refresh-secret'
             }
+
+            // Entra-only login
             {
               name: 'ALLOW_EMAIL_LOGIN'
-              value: 'true'
+              value: 'false'
             }
             {
               name: 'ALLOW_REGISTRATION'
+              value: 'false'
+            }
+            {
+              name: 'ALLOW_SOCIAL_LOGIN'
               value: 'true'
             }
             {
-              name: 'SESSION_EXPIRY'
-              value: '1000 * 60 * 15'
+              name: 'DOMAIN_CLIENT'
+              value: 'https://chat.ai.oregonstate.edu'
             }
             {
-              name: 'REFRESH_TOKEN_EXPIRY'
-              value: '(1000 * 60 * 60 * 24) * 7'
+              name: 'DOMAIN_SERVER'
+              value: 'https://chat.ai.oregonstate.edu'
+            }
+
+            // OpenID / Entra config
+            {
+              name: 'OPENID_CLIENT_ID'
+              secretRef: 'azure-openid-client-id'
+            }
+            {
+              name: 'OPENID_CLIENT_SECRET'
+              secretRef: 'azure-openid-client-secret'
+            }
+            {
+              name: 'OPENID_ISSUER'
+              value: 'https://login.microsoftonline.com/${azureOpenIdTenantId}/v2.0/'
+            }
+            {
+              name: 'OPENID_SESSION_SECRET'
+              secretRef: 'open-id-session-secret'
+            }
+            {
+              name: 'OPENID_SCOPE'
+              value: 'api://50963c60-3b2e-40d4-9272-34f10d276755/.default openid profile email offline_access'
+            }
+            {
+              name: 'OPENID_CALLBACK_URL'
+              value: '/oauth/openid/callback'
+            }
+            {
+              name: 'OPENID_REQUIRED_ROLE_TOKEN_KIND'
+              value: 'id'
+            }
+            {
+              name: 'OPENID_REQUIRED_ROLE_PARAMETER_PATH'
+              value: openIdRequiredRoleParameterPath
+            }
+            {
+              name: 'OPENID_REQUIRED_ROLE'
+              value: openIdRequiredRole
+            }
+            {
+              name: 'OPENID_USE_END_SESSION_ENDPOINT'
+              value: 'true'
+            }
+
+            // Token reuse & JWKS caching
+            {
+              name: 'OPENID_REUSE_TOKENS'
+              value: 'true'
+            }
+            {
+              name: 'OPENID_JWKS_URL_CACHE_ENABLED'
+              value: 'true'
+            }
+            {
+              name: 'OPENID_JWKS_URL_CACHE_TIME'
+              value: '600000'
+            }
+            {
+              name: 'OPENID_ON_BEHALF_FLOW_FOR_USERINFO_REQUIRED'
+              value: 'true'
+            }
+            {
+              name: 'OPENID_ON_BEHALF_FLOW_USERINFO_SCOPE'
+              value: 'user.read'
+            }
+
+            // People / group search
+            {
+              name: 'USE_ENTRA_ID_FOR_PEOPLE_SEARCH'
+              value: 'true'
+            }
+            {
+              name: 'ENTRA_ID_INCLUDE_OWNERS_AS_MEMBERS'
+              value: 'true'
+            }
+            {
+              name: 'OPENID_GRAPH_SCOPES'
+              value: 'User.Read,People.Read,GroupMember.Read.All,User.ReadBasic.All'
+            }
+
+            // SharePoint integration
+            {
+              name: 'ENABLE_SHAREPOINT_FILEPICKER'
+              value: 'true'
+            }
+            {
+              name: 'SHAREPOINT_BASE_URL'
+              secretRef: 'sharepoint-base-url'
+            }
+            {
+              name: 'SHAREPOINT_PICKER_SHAREPOINT_SCOPE'
+              value: sharePointPickerSharePointScope
+            }
+            {
+              name: 'SHAREPOINT_PICKER_GRAPH_SCOPE'
+              value: sharePointPickerGraphScope
+            }
+
+            // STT/TTS env vars used by speech config in librechat.yaml
+            {
+              name: 'STT_API_KEY'
+              secretRef: 'stt-api-key'
+            }
+            {
+              name: 'TTS_API_KEY'
+              secretRef: 'tts-api-key'
+            }
+
+            // Operational flags
+            {
+              name: 'DEBUG_LOGGING'
+              value: 'false'
+            }
+            {
+              name: 'DEBUG_CONSOLE'
+              value: 'false'
             }
             {
               name: 'DEBUG_OPENAI'
               value: 'false'
             }
             {
+              name: 'DEBUG_OPENID_REQUESTS'
+              value: 'false'
+            }
+            {
+              name: 'HELP_AND_FAQ_URL'
+              value: 'https://librechat.ai'
+            }
+            {
               name: 'CUSTOM_FOOTER'
-              value: 'That Dam BeavrChat ∞ is powered by LibreChat and Azure OpenAI.'
+              value: 'ChatGPT can make mistakes. Check important info.'
             }
             {
               name: 'NO_INDEX'
@@ -575,6 +727,14 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             {
               name: 'ALLOW_SHARED_LINKS_PUBLIC'
               value: 'false'
+            }
+            {
+              name: 'SESSION_EXPIRY'
+              value: '1000 * 60 * 15'
+            }
+            {
+              name: 'REFRESH_TOKEN_EXPIRY'
+              value: '(1000 * 60 * 60 * 24) * 7'
             }
           ]
           volumeMounts: [
