@@ -17,9 +17,3 @@ endpoints:
           gpt-5.2:
             deploymentName: "openai-gpt5.2-deployment-name"
             version: "2025-04-01-preview"    # match Azure, 2025-12-11
-          gpt-4o-mini-transcribe:
-            deploymentName: "openai-gpt4o-mini-transcribe-deployment-name"
-            version: "2025-03-01-preview"    # match Azure, 2025-12-15
-          gpt-4o-mini-tts:
-            deploymentName: "openai-gpt4o-mini-tts-deployment-name"
-            version: "2025-03-01-preview"    # match Azure, 2025-12-15
