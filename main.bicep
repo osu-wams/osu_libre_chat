@@ -81,17 +81,6 @@ param sharePointPickerSharePointScope string
 @description('Scope for file downloads (Microsoft Graph API)')
 param sharePointPickerGraphScope string = 'Files.Read.All'
 
-// -----------------------------------------------------------------------------
-// Speech (STT/TTS) Parameters
-// -----------------------------------------------------------------------------
-@description('Speech-to-Text API key (used for STT_API_KEY in LibreChat)')
-@secure()
-param sttApiKey string
-
-@description('Text-to-Speech API key (used for TTS_API_KEY in LibreChat)')
-@secure()
-param ttsApiKey string
-
 // Determine the deterministic MongoDB host name
 var mongoHost = 'mongodb-${appSuffix}'
 var mongoPort = '27017'
@@ -495,15 +484,6 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
           name: 'sharepoint-base-url'
           value: sharePointBaseUrl
         }
-        // Speech STT/TTS API keys
-        {
-          name: 'stt-api-key'
-          value: sttApiKey
-        }
-        {
-          name: 'tts-api-key'
-          value: ttsApiKey
-        }
       ]
       ingress: {
         external: true
@@ -683,16 +663,6 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             {
               name: 'SHAREPOINT_PICKER_GRAPH_SCOPE'
               value: sharePointPickerGraphScope
-            }
-
-            // STT/TTS env vars used by speech config in librechat.yaml
-            {
-              name: 'STT_API_KEY'
-              secretRef: 'stt-api-key'
-            }
-            {
-              name: 'TTS_API_KEY'
-              secretRef: 'tts-api-key'
             }
 
             // Operational flags
