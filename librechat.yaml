@@ -22,7 +22,7 @@ speech:
   tts:
     azureOpenAI:
       instanceName: "${OPENAI_INSTANCE_NAME}"
-      apiKey: "${TTS_API_KEY}"
+      apiKey: "${AZURE_TTS_API_KEY}"
       deploymentName: "${GPT4O_MINI_TTS_DEPLOYMENT_NAME}"
       apiVersion: "${AZURE_OPENAI_API_VERSION}"
       model: "tts-1"
@@ -31,17 +31,15 @@ speech:
   stt:
     azureOpenAI:
       instanceName: "${OPENAI_INSTANCE_NAME}"
-      apiKey: "${STT_API_KEY}"
+      apiKey: "${AZURE_STT_API_KEY}"
       deploymentName: "${GPT4O_MINI_TRANSCRIBE_DEPLOYMENT_NAME}"
       apiVersion: "${AZURE_OPENAI_API_VERSION}"
 
-  # Default UI behavior for the speech settings tab
   speechTab:
     conversationMode: false
     advancedMode: false
     speechToText:
       engineSTT: "azureOpenAI"
-      # You can add languageSTT / autoTranscribeAudio / decibelValue if desired
       autoTranscribeAudio: true
       decibelValue: -45
     textToSpeech:

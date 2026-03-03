@@ -9,12 +9,6 @@ param openAiInstanceName string
 @secure()
 param openAiApiKey string
 
-@description('Deployment name for the model-router deployment in Azure OpenAI')
-param modelRouterDeploymentName string = 'model-router'
-
-@description('Deployment name for the gpt-5.2 deployment in Azure OpenAI')
-param gpt52DeploymentName string = 'gpt-5.2'
-
 @description('Deployment name for the gpt-4o-mini-transcribe deployment in Azure OpenAI')
 param gpt4oMiniTranscribeDeploymentName string = 'gpt-4o-mini-transcribe'
 
@@ -183,16 +177,7 @@ resource librechatConfig_fileShare 'Microsoft.Storage/storageAccounts/fileServic
 // -----------------------------------------------------------------------------
 // Load librechat.yaml template and perform placeholder replacements
 // -----------------------------------------------------------------------------
-var rawLibrechatConfig = loadTextContent('./librechat.yaml')
-
-// Currently still replacing the OpenAI key placeholder (as in your existing file)
-var updatedLibrechatConfig_1 = replace(rawLibrechatConfig, 'openai-api-key', openAiApiKey)
-var updatedLibrechatConfig_2 = replace(updatedLibrechatConfig_1, 'openai-instance-name', openAiInstanceName)
-var updatedLibrechatConfig_3 = replace(updatedLibrechatConfig_2, 'openai-model-router-deployment-name', modelRouterDeploymentName)
-var updatedLibrechatConfig_4 = replace(updatedLibrechatConfig_3, 'openai-gpt5.2-deployment-name', gpt52DeploymentName)
-var updatedLibrechatConfig_5 = replace(updatedLibrechatConfig_4, 'openai-gpt4o-mini-transcribe-deployment-name', gpt4oMiniTranscribeDeploymentName)
-var updatedLibrechatConfig_6 = replace(updatedLibrechatConfig_5, 'openai-gpt4o-mini-tts-deployment-name', gpt4oMiniTtsDeploymentName)
-var updatedLibrechatConfig = updatedLibrechatConfig_6
+var librechatConfigContent = loadTextContent('./librechat.yaml')
 
 resource uploadLibrechatConfig_deploymentScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
   name: 'upload-librechat-config-${appSuffix}'
@@ -217,7 +202,7 @@ resource uploadLibrechatConfig_deploymentScript 'Microsoft.Resources/deploymentS
       }
       {
         name: 'CONTENT'
-        value: updatedLibrechatConfig
+        value: librechatConfigContent
       }
     ]
     scriptContent: '''
