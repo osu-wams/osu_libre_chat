@@ -17,9 +17,36 @@ endpoints:
           gpt-5.2:
             deploymentName: "openai-gpt5.2-deployment-name"
             version: "2025-04-01-preview"    # match Azure, 2025-12-11
-          gpt-4o-mini-transcribe:
-            deploymentName: "openai-gpt4o-mini-transcribe-deployment-name"
-            version: "2025-03-01-preview"    # match Azure, 2025-12-15
-          gpt-4o-mini-tts:
-            deploymentName: "openai-gpt4o-mini-tts-deployment-name"
-            version: "2025-03-01-preview"    # match Azure, 2025-12-15
+# librechat.yaml (or your main config)
+speech:
+  tts:
+    azureOpenAI:
+      instanceName: "${OPENAI_INSTANCE_NAME}"
+      apiKey: "${TTS_API_KEY}"
+      deploymentName: "${GPT4O_MINI_TTS_DEPLOYMENT_NAME}"
+      apiVersion: "${AZURE_OPENAI_API_VERSION}"
+      model: "tts-1"
+      voices: ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+
+  stt:
+    azureOpenAI:
+      instanceName: "${OPENAI_INSTANCE_NAME}"
+      apiKey: "${STT_API_KEY}"
+      deploymentName: "${GPT4O_MINI_TRANSCRIBE_DEPLOYMENT_NAME}"
+      apiVersion: "${AZURE_OPENAI_API_VERSION}"
+
+  # Default UI behavior for the speech settings tab
+  speechTab:
+    conversationMode: false
+    advancedMode: false
+    speechToText:
+      engineSTT: "azureOpenAI"
+      # You can add languageSTT / autoTranscribeAudio / decibelValue if desired
+      autoTranscribeAudio: true
+      decibelValue: -45
+    textToSpeech:
+      engineTTS: "azureOpenAI"
+      voice: "nova"
+      automaticPlayback: false
+      playbackRate: 1.0
+      cacheTTS: true

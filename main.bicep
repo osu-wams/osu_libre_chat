@@ -48,49 +48,49 @@ param librechatJwtRefreshSecret string
 // -----------------------------------------------------------------------------
 // Azure Entra / OpenID parameters (single-tenant)
 // -----------------------------------------------------------------------------
-@description('Azure Entra app client ID (OIDC)')
-@secure()
-param azureOpenIdClientId string
+//@description('Azure Entra app client ID (OIDC)')
+//@secure()
+//param azureOpenIdClientId string
 
-@description('Azure Entra app client secret (OIDC)')
-@secure()
-param azureOpenIdClientSecret string
+//@description('Azure Entra app client secret (OIDC)')
+//@secure()
+//param azureOpenIdClientSecret string
 
-@description('Azure Entra tenant ID (OIDC issuer)')
-param azureOpenIdTenantId string
+//@description('Azure Entra tenant ID (OIDC issuer)')
+//param azureOpenIdTenantId string
 
-@description('A random session secret used for OpenID sessions (e.g. cookie encryption)')
-@secure()
-param openIdSessionSecret string
+//@description('A random session secret used for OpenID sessions (e.g. cookie encryption)')
+//@secure()
+//param openIdSessionSecret string
 
-@description('Optional: the JSON path inside a token where required roles reside (default: "roles")')
-param openIdRequiredRoleParameterPath string = 'roles'
+//@description('Optional: the JSON path inside a token where required roles reside (default: "roles")')
+//param openIdRequiredRoleParameterPath string = 'roles'
 
-@description('Optional: comma-separated names of groups/roles in Entra that users must belong to')
-param openIdRequiredRole string = ''
+//@description('Optional: comma-separated names of groups/roles in Entra that users must belong to')
+//param openIdRequiredRole string = ''
 
 // -----------------------------------------------------------------------------
 // SharePoint Integration Parameters
 // -----------------------------------------------------------------------------
-@description('Base URL of the SharePoint tenant (e.g., https://contoso.sharepoint.com)')
-param sharePointBaseUrl string
+//@description('Base URL of the SharePoint tenant (e.g., https://contoso.sharepoint.com)')
+//param sharePointBaseUrl string
 
-@description('Scope for SharePoint picker (SharePoint API)')
-param sharePointPickerSharePointScope string
+//@description('Scope for SharePoint picker (SharePoint API)')
+//param sharePointPickerSharePointScope string
 
-@description('Scope for file downloads (Microsoft Graph API)')
-param sharePointPickerGraphScope string = 'Files.Read.All'
+//@description('Scope for file downloads (Microsoft Graph API)')
+///param sharePointPickerGraphScope string = 'Files.Read.All'
 
 // -----------------------------------------------------------------------------
 // Speech (STT/TTS) Parameters
 // -----------------------------------------------------------------------------
-@description('Speech-to-Text API key (used for STT_API_KEY in LibreChat)')
-@secure()
-param sttApiKey string
+//@description('Speech-to-Text API key (used for STT_API_KEY in LibreChat)')
+//@secure()
+//param sttApiKey string
 
-@description('Text-to-Speech API key (used for TTS_API_KEY in LibreChat)')
-@secure()
-param ttsApiKey string
+//@description('Text-to-Speech API key (used for TTS_API_KEY in LibreChat)')
+//@secure()
+//param ttsApiKey string
 
 // Determine the deterministic MongoDB host name
 var mongoHost = 'mongodb-${appSuffix}'
@@ -478,32 +478,32 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
           value: librechatJwtRefreshSecret
         }
         // OpenID/Entra secrets
-        {
-          name: 'azure-openid-client-id'
-          value: azureOpenIdClientId
-        }
-        {
-          name: 'azure-openid-client-secret'
-          value: azureOpenIdClientSecret
-        }
-        {
-          name: 'open-id-session-secret'
-          value: openIdSessionSecret
-        }
+//        {
+//          name: 'azure-openid-client-id'
+//          value: azureOpenIdClientId
+//        }
+//        {
+//          name: 'azure-openid-client-secret'
+//          value: azureOpenIdClientSecret
+//        }
+//        {
+//          name: 'open-id-session-secret'
+//          value: openIdSessionSecret
+//        }
         // SharePoint tenant URL as secret
-        {
-          name: 'sharepoint-base-url'
-          value: sharePointBaseUrl
-        }
-        // Speech STT/TTS API keys
-        {
-          name: 'stt-api-key'
-          value: sttApiKey
-        }
-        {
-          name: 'tts-api-key'
-          value: ttsApiKey
-        }
+//        {
+//          name: 'sharepoint-base-url'
+//          value: sharePointBaseUrl
+//        }
+          // Azure Speech API Keys (same value as openAiApiKey)
+          {
+            name: 'azure-tts-api-key'
+            value: openAiApiKey
+          }
+          {
+            name: 'azure-stt-api-key'
+            value: openAiApiKey
+          }
       ]
       ingress: {
         external: true
@@ -570,11 +570,11 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             // Entra-only login
             {
               name: 'ALLOW_EMAIL_LOGIN'
-              value: 'false'
+              value: 'true'
             }
             {
               name: 'ALLOW_REGISTRATION'
-              value: 'false'
+              value: 'true'
             }
             {
               name: 'ALLOW_SOCIAL_LOGIN'
@@ -582,119 +582,137 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             }
             {
               name: 'DOMAIN_CLIENT'
-              value: 'https://chat.ai.oregonstate.edu'
+              value: 'https://librechat-abrinzxuackwy.agreeableground-c6eb38a9.eastus2.azurecontainerapps.io/'
             }
             {
               name: 'DOMAIN_SERVER'
-              value: 'https://chat.ai.oregonstate.edu'
+              value: 'https://librechat-abrinzxuackwy.agreeableground-c6eb38a9.eastus2.azurecontainerapps.io/'
             }
 
             // OpenID / Entra config
-            {
-              name: 'OPENID_CLIENT_ID'
-              secretRef: 'azure-openid-client-id'
-            }
-            {
-              name: 'OPENID_CLIENT_SECRET'
-              secretRef: 'azure-openid-client-secret'
-            }
-            {
-              name: 'OPENID_ISSUER'
-              value: 'https://login.microsoftonline.com/${azureOpenIdTenantId}/v2.0/'
-            }
-            {
-              name: 'OPENID_SESSION_SECRET'
-              secretRef: 'open-id-session-secret'
-            }
-            {
-              name: 'OPENID_SCOPE'
-              value: 'api://50963c60-3b2e-40d4-9272-34f10d276755/.default openid profile email offline_access'
-            }
-            {
-              name: 'OPENID_CALLBACK_URL'
-              value: '/oauth/openid/callback'
-            }
-            {
-              name: 'OPENID_REQUIRED_ROLE_TOKEN_KIND'
-              value: 'id'
-            }
-            {
-              name: 'OPENID_REQUIRED_ROLE_PARAMETER_PATH'
-              value: openIdRequiredRoleParameterPath
-            }
-            {
-              name: 'OPENID_REQUIRED_ROLE'
-              value: openIdRequiredRole
-            }
-            {
-              name: 'OPENID_USE_END_SESSION_ENDPOINT'
-              value: 'true'
-            }
+//            {
+//              name: 'OPENID_CLIENT_ID'
+//              secretRef: 'azure-openid-client-id'
+//            }
+//            {
+//              name: 'OPENID_CLIENT_SECRET'
+//              secretRef: 'azure-openid-client-secret'
+//            }
+//            {
+//              name: 'OPENID_ISSUER'
+//              value: 'https://login.microsoftonline.com/${azureOpenIdTenantId}/v2.0/'
+//            }
+//            {
+//              name: 'OPENID_SESSION_SECRET'
+//              secretRef: 'open-id-session-secret'
+//            }
+//            {
+//              name: 'OPENID_SCOPE'
+//              value: 'api://50963c60-3b2e-40d4-9272-34f10d276755/.default openid profile email offline_access'
+//            }
+//            {
+//              name: 'OPENID_CALLBACK_URL'
+//              value: '/oauth/openid/callback'
+//            }
+//            {
+//              name: 'OPENID_REQUIRED_ROLE_TOKEN_KIND'
+//              value: 'id'
+//            }
+//            {
+//              name: 'OPENID_REQUIRED_ROLE_PARAMETER_PATH'
+//              value: openIdRequiredRoleParameterPath
+//            }
+//            {
+//              name: 'OPENID_REQUIRED_ROLE'
+//              value: openIdRequiredRole
+//            }
+//            {
+//              name: 'OPENID_USE_END_SESSION_ENDPOINT'
+//              value: 'true'
+//            }
 
             // Token reuse & JWKS caching
-            {
-              name: 'OPENID_REUSE_TOKENS'
-              value: 'true'
-            }
-            {
-              name: 'OPENID_JWKS_URL_CACHE_ENABLED'
-              value: 'true'
-            }
-            {
-              name: 'OPENID_JWKS_URL_CACHE_TIME'
-              value: '600000'
-            }
-            {
-              name: 'OPENID_ON_BEHALF_FLOW_FOR_USERINFO_REQUIRED'
-              value: 'true'
-            }
-            {
-              name: 'OPENID_ON_BEHALF_FLOW_USERINFO_SCOPE'
-              value: 'user.read'
-            }
+//            {
+//              name: 'OPENID_REUSE_TOKENS'
+//              value: 'true'
+//            }
+//            {
+//              name: 'OPENID_JWKS_URL_CACHE_ENABLED'
+//              value: 'true'
+//            }
+//            {
+//              name: 'OPENID_JWKS_URL_CACHE_TIME'
+//              value: '600000'
+//            }
+//            {
+//              name: 'OPENID_ON_BEHALF_FLOW_FOR_USERINFO_REQUIRED'
+//              value: 'true'
+//            }
+//            {
+//              name: 'OPENID_ON_BEHALF_FLOW_USERINFO_SCOPE'
+//              value: 'user.read'
+//            }
 
             // People / group search
-            {
-              name: 'USE_ENTRA_ID_FOR_PEOPLE_SEARCH'
-              value: 'true'
-            }
-            {
-              name: 'ENTRA_ID_INCLUDE_OWNERS_AS_MEMBERS'
-              value: 'true'
-            }
-            {
-              name: 'OPENID_GRAPH_SCOPES'
-              value: 'User.Read,People.Read,GroupMember.Read.All,User.ReadBasic.All'
-            }
+//            {
+//              name: 'USE_ENTRA_ID_FOR_PEOPLE_SEARCH'
+//              value: 'true'
+//            }
+//            {
+//              name: 'ENTRA_ID_INCLUDE_OWNERS_AS_MEMBERS'
+//              value: 'true'
+//            }
+//            {
+//              name: 'OPENID_GRAPH_SCOPES'
+//              value: 'User.Read,People.Read,GroupMember.Read.All,User.ReadBasic.All'
+//            }
 
             // SharePoint integration
+//            {
+//              name: 'ENABLE_SHAREPOINT_FILEPICKER'
+//              value: 'true'
+//            }
+//            {
+//              name: 'SHAREPOINT_BASE_URL'
+//              secretRef: 'sharepoint-base-url'
+//            }
+//            {
+//              name: 'SHAREPOINT_PICKER_SHAREPOINT_SCOPE'
+//              value: sharePointPickerSharePointScope
+//            }
+//            {
+//              name: 'SHAREPOINT_PICKER_GRAPH_SCOPE'
+//              value: sharePointPickerGraphScope
+//            }
+            // Azure OpenAI shared instance + API version
             {
-              name: 'ENABLE_SHAREPOINT_FILEPICKER'
-              value: 'true'
+              name: 'OPENAI_INSTANCE_NAME'
+              value: openAiInstanceName
             }
             {
-              name: 'SHAREPOINT_BASE_URL'
-              secretRef: 'sharepoint-base-url'
-            }
-            {
-              name: 'SHAREPOINT_PICKER_SHAREPOINT_SCOPE'
-              value: sharePointPickerSharePointScope
-            }
-            {
-              name: 'SHAREPOINT_PICKER_GRAPH_SCOPE'
-              value: sharePointPickerGraphScope
+              name: 'AZURE_OPENAI_API_VERSION'
+              value: '2025-03-01-preview' // matches your librechat.yaml pattern
             }
 
-            // STT/TTS env vars used by speech config in librechat.yaml
+            // Azure TTS/STT API Keys
             {
-              name: 'STT_API_KEY'
-              secretRef: 'stt-api-key'
+              name: 'AZURE_TTS_API_KEY'
+              secretRef: 'azure-tts-api-key'
             }
             {
-              name: 'TTS_API_KEY'
-              secretRef: 'tts-api-key'
+              name: 'AZURE_STT_API_KEY'
+              secretRef: 'azure-stt-api-key'
             }
 
+            // Deployment names
+            {
+              name: 'GPT4O_MINI_TTS_DEPLOYMENT_NAME'
+              value: gpt4oMiniTtsDeploymentName
+            }
+            {
+              name: 'GPT4O_MINI_TRANSCRIBE_DEPLOYMENT_NAME'
+              value: gpt4oMiniTranscribeDeploymentName
+            }
             // Operational flags
             {
               name: 'DEBUG_LOGGING'
