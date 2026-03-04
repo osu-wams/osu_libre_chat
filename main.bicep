@@ -562,11 +562,11 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             }
             {
               name: 'DOMAIN_CLIENT'
-              value: 'https://chat.ai.oregonstate.edu'
+              value: 'https://sandbox.ai.oregonstate.edu'
             }
             {
               name: 'DOMAIN_SERVER'
-              value: 'https://chat.ai.oregonstate.edu'
+              value: 'https://sandbox.ai.oregonstate.edu'
             }
 
             // OpenID / Entra config
@@ -688,7 +688,7 @@ resource librechat_containerApp 'Microsoft.App/containerApps@2023-08-01-preview'
             }
             {
               name: 'CUSTOM_FOOTER'
-              value: 'ChatGPT can make mistakes. Check important info.'
+              value: 'AI can make mistakes. Never trust; always verify.'
             }
             {
               name: 'NO_INDEX'
